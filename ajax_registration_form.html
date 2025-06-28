@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Registrasi - AJAX</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 480px;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e1e1e1;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .form-group.error input,
+        .form-group.error select {
+            border-color: #e74c3c;
+            background-color: #fdf2f2;
+        }
+
+        .form-group.success input,
+        .form-group.success select {
+            border-color: #27ae60;
+            background-color: #f2fbf5;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .form-group.error .error-message {
+            display: block;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .btn.loading .btn-text {
+            opacity: 0;
+        }
+
+        .btn.loading .loading {
+            display: block;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .password-strength {
+            margin-top: 8px;
+            font-size: 0.85em;
+        }
+
+        .strength-weak { color: #e74c3c; }
+        .strength-medium { color: #f39c12; }
+        .strength-strong { color: #27ae60; }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Daftar Akun</h1>
+            <p>Bergabunglah dengan komunitas kami</p>
+        </div>
+
+        <div class="success-message" id="successMessage">
+            🎉 Pendaftaran berhasil! Selamat datang di komunitas kami.
+        </div>
+
+        <form id="registrationForm">
+            <div class="form-group">
+                <label for="fullName">Nama Lengkap</label>
+                <input type="text" id="fullName" name="fullName" required>
+                <div class="error-message">Nama lengkap harus diisi minimal 2 karakter</div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+                <div class="error-message">Masukkan email yang valid</div>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Nomor Telepon</label>
+                <input type="tel" id="phone" name="phone" required>
+                <div class="error-message">Masukkan nomor telepon yang valid</div>
+            </div>
+
+            <div class="form-group">
+                <label for="gender">Jenis Kelamin</label>
+                <select id="gender" name="gender" required>
+                    <option value="">Pilih jenis kelamin</option>
+                    <option value="male">Laki-laki</option>
+                    <option value="female">Perempuan</option>
+                </select>
+                <div class="error-message">Pilih jenis kelamin</div>
+            </div>
+
+            <div class="form-group">
+                <label for="birthDate">Tanggal Lahir</label>
+                <input type="date" id="birthDate" name="birthDate" required>
+                <div class="error-message">Masukkan tanggal lahir yang valid</div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+                <div class="password-strength" id="passwordStrength"></div>
+                <div class="error-message">Password minimal 8 karakter dengan kombinasi huruf dan angka</div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Konfirmasi Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+                <div class="error-message">Password tidak cocok</div>
+            </div>
+
+            <button type="submit" class="btn">
+                <span class="btn-text">Daftar Sekarang</span>
+                <div class="loading"></div>
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // Data storage untuk simulasi
+        let users = [];
+
+        // Form dan elemen
+        const form = document.getElementById('registrationForm');
+        const submitBtn = form.querySelector('.btn');
+        const successMessage = document.getElementById('successMessage');
+
+        // Validasi real-time
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('blur', () => validateField(input));
+            input.addEventListener('input', () => {
+                if (input.name === 'password') {
+                    checkPasswordStrength(input.value);
+                }
+                if (input.classList.contains('error')) {
+                    validateField(input);
+                }
+            });
+        });
+
+        // Validasi individual field
+        function validateField(field) {
+            const formGroup = field.closest('.form-group');
+            const fieldName = field.name;
+            const fieldValue = field.value.trim();
+
+            // Reset state
+            formGroup.classList.remove('error', 'success');
+
+            let isValid = true;
+            let errorMessage = '';
+
+            switch (fieldName) {
+                case 'fullName':
+                    if (fieldValue.length < 2) {
+                        isValid = false;
+                        errorMessage = 'Nama lengkap harus diisi minimal 2 karakter';
+                    }
+                    break;
+
+                case 'email':
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(fieldValue)) {
+                        isValid = false;
+                        errorMessage = 'Masukkan email yang valid';
+                    } else if (users.some(user => user.email === fieldValue)) {
+                        isValid = false;
+                        errorMessage = 'Email sudah terdaftar';
+                    }
+                    break;
+
+                case 'phone':
+                    const phoneRegex = /^[0-9]{10,15}$/;
+                    if (!phoneRegex.test(fieldValue.replace(/\D/g, ''))) {
+                        isValid = false;
+                        errorMessage = 'Masukkan nomor telepon yang valid (10-15 digit)';
+                    }
+                    break;
+
+                case 'gender':
+                    if (!fieldValue) {
+                        isValid = false;
+                        errorMessage = 'Pilih jenis kelamin';
+                    }
+                    break;
+
+                case 'birthDate':
+                    const birthDate = new Date(fieldValue);
+                    const today = new Date();
+                    const age = today.getFullYear() - birthDate.getFullYear();
+                    
+                    if (!fieldValue || age < 13 || age > 120) {
+                        isValid = false;
+                        errorMessage = 'Masukkan tanggal lahir yang valid (minimal 13 tahun)';
+                    }
+                    break;
+
+                case 'password':
+                    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/;
+                    if (!passwordRegex.test(fieldValue)) {
+                        isValid = false;
+                        errorMessage = 'Password minimal 8 karakter dengan kombinasi huruf dan angka';
+                    }
+                    break;
+
+                case 'confirmPassword':
+                    const password = document.getElementById('password').value;
+                    if (fieldValue !== password) {
+                        isValid = false;
+                        errorMessage = 'Password tidak cocok';
+                    }
+                    break;
+            }
+
+            // Update UI
+            if (isValid) {
+                formGroup.classList.add('success');
+            } else {
+                formGroup.classList.add('error');
+                const errorDiv = formGroup.querySelector('.error-message');
+                if (errorDiv && errorMessage) {
+                    errorDiv.textContent = errorMessage;
+                }
+            }
+
+            return isValid;
+        }
+
+        // Cek kekuatan password
+        function checkPasswordStrength(password) {
+            const strengthElement = document.getElementById('passwordStrength');
+            let strength = 0;
+            let strengthText = '';
+
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+            if (strength < 3) {
+                strengthText = '🔴 Lemah';
+                strengthElement.className = 'password-strength strength-weak';
+            } else if (strength < 4) {
+                strengthText = '🟡 Sedang';
+                strengthElement.className = 'password-strength strength-medium';
+            } else {
+                strengthText = '🟢 Kuat';
+                strengthElement.className = 'password-strength strength-strong';
+            }
+
+            strengthElement.textContent = strengthText;
+        }
+
+        // Submit form dengan AJAX
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Validasi semua field
+            let isFormValid = true;
+            inputs.forEach(input => {
+                if (!validateField(input)) {
+                    isFormValid = false;
+                }
+            });
+
+            if (!isFormValid) {
+                return;
+            }
+
+            // Tampilkan loading
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+
+            // Simulasi AJAX call
+            try {
+                const formData = new FormData(form);
+                const userData = Object.fromEntries(formData.entries());
+                
+                // Simulasi delay network
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Simulasi respons sukses
+                const response = await simulateRegistration(userData);
+                
+                if (response.success) {
+                    // Simpan user ke storage
+                    users.push(userData);
+                    
+                    // Tampilkan pesan sukses
+                    successMessage.style.display = 'block';
+                    form.style.display = 'none';
+                    
+                    // Scroll ke atas
+                    successMessage.scrollIntoView({ behavior: 'smooth' });
+                    
+                    console.log('Pengguna berhasil didaftarkan:', userData);
+                } else {
+                    throw new Error(response.message || 'Terjadi kesalahan');
+                }
+
+            } catch (error) {
+                alert('Terjadi kesalahan: ' + error.message);
+                console.error('Error:', error);
+            } finally {
+                // Hilangkan loading
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Simulasi fungsi registrasi
+        async function simulateRegistration(userData) {
+            // Simulasi validasi server-side
+            if (users.some(user => user.email === userData.email)) {
+                return {
+                    success: false,
+                    message: 'Email sudah terdaftar'
+                };
+            }
+
+            // Simulasi respons sukses
+            return {
+                success: true,
+                message: 'Registrasi berhasil',
+                data: {
+                    id: Date.now(),
+                    ...userData,
+                    password: undefined, // Hapus password dari respons
+                    confirmPassword: undefined
+                }
+            };
+        }
+
+        // Format tanggal maksimal (18 tahun yang lalu)
+        const today = new Date();
+        const maxDate = new Date(today.getFullYear() - 13, today.getMonth(), today.getDate());
+        document.getElementById('birthDate').max = maxDate.toISOString().split('T')[0];
+    </script>
+</body>
+</html>
